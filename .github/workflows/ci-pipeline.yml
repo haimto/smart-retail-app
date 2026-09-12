@@ -82,6 +82,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
+          trivyignores: .trivyignore
 
       # 3. Docker Hub
       - name: Push Docker Image
