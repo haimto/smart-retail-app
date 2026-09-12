@@ -44,3 +44,49 @@ jobs:
         run: |
           # Scan the app directory for common security issues (e.g., hardcoded passwords, SQL injection risks)
           bandit -r app/ -ll -ii
+
+  build-and-scan-image:
+    name: Build, Scan (Trivy) and Push
+    needs: lint-and-scan # מבטיח שהשלב הזה ירוץ רק אם ה-Lint עבר בהצלחה
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 1. בונים את האימג' אבל שומרים אותו מקומית בשרת של GitHub ולא דוחפים עדיין
+      - name: Build Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          load: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/smart-retail-app-api:latest
+
+      # 2. הרצת סורק האבטחה Trivy על האימג' שבנינו
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/smart-retail-app-api:latest'
+          format: 'table'
+          exit-code: '1' # עוצר את ה-Pipeline אם מצאנו חולשות קריטיות!
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      # 3. רק אם Trivy לא מצא חולשות קריטיות נדחוף את האימג' ל-Docker Hub
+      - name: Push Docker Image
+        if: success()
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/smart-retail-app-api:latest
