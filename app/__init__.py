@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from app.config import config_by_name
 from app.models import db
 
@@ -15,6 +15,10 @@ def create_app(config_name="development"):
     
     from app.api.restocks import restocks_bp
     app.register_blueprint(restocks_bp)
+
+    @app.route("/", methods=["GET"])
+    def index():
+        return render_template("index.html")
 
     @app.route("/health", methods=["GET"])
     def health_check():
