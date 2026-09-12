@@ -28,8 +28,8 @@ RUN groupadd -g 1000 appgroup && \
 
 COPY --from=builder /app/wheels /wheels
 COPY --from=builder /app/requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache /wheels/*
+RUN pip install --no-cache /wheels/* && \
+    pip install --no-cache --upgrade msgpack==1.2.1 setuptools==78.1.1
 
 COPY app/ ./app/
 COPY init_db.py .
